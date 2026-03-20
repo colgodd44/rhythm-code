@@ -1494,21 +1494,21 @@ const CHIP_GROUPS=[
     {l:'null',c:'null'},
   ]},
   {g:'Notes',chips:[
-    {l:'c4',c:'note(["c4"]).wave("triangle").gain(0.5)'},
-    {l:'d4',c:'note(["d4"]).wave("triangle").gain(0.5)'},
-    {l:'e4',c:'note(["e4"]).wave("triangle").gain(0.5)'},
-    {l:'f4',c:'note(["f4"]).wave("triangle").gain(0.5)'},
-    {l:'g4',c:'note(["g4"]).wave("triangle").gain(0.5)'},
-    {l:'a4',c:'note(["a4"]).wave("triangle").gain(0.5)'},
-    {l:'b4',c:'note(["b4"]).wave("triangle").gain(0.5)'},
-    {l:'c3',c:'note(["c3"]).wave("triangle").gain(0.5)'},
-    {l:'g3',c:'note(["g3"]).wave("triangle").gain(0.5)'},
-    {l:'c5',c:'note(["c5"]).wave("triangle").gain(0.5)'},
-    {l:'eb4',c:'note(["eb4"]).wave("triangle").gain(0.5)'},
-    {l:'ab4',c:'note(["ab4"]).wave("triangle").gain(0.5)'},
-    {l:'bb4',c:'note(["bb4"]).wave("triangle").gain(0.5)'},
-    {l:'c#4',c:'note(["c#4"]).wave("triangle").gain(0.5)'},
-    {l:'f#4',c:'note(["f#4"]).wave("triangle").gain(0.5)'},
+    {l:'c4',c:'note(["c4"]).wave("triangle").gain(0.5)',v:'"c4"'},
+    {l:'d4',c:'note(["d4"]).wave("triangle").gain(0.5)',v:'"d4"'},
+    {l:'e4',c:'note(["e4"]).wave("triangle").gain(0.5)',v:'"e4"'},
+    {l:'f4',c:'note(["f4"]).wave("triangle").gain(0.5)',v:'"f4"'},
+    {l:'g4',c:'note(["g4"]).wave("triangle").gain(0.5)',v:'"g4"'},
+    {l:'a4',c:'note(["a4"]).wave("triangle").gain(0.5)',v:'"a4"'},
+    {l:'b4',c:'note(["b4"]).wave("triangle").gain(0.5)',v:'"b4"'},
+    {l:'c3',c:'note(["c3"]).wave("triangle").gain(0.5)',v:'"c3"'},
+    {l:'g3',c:'note(["g3"]).wave("triangle").gain(0.5)',v:'"g3"'},
+    {l:'c5',c:'note(["c5"]).wave("triangle").gain(0.5)',v:'"c5"'},
+    {l:'eb4',c:'note(["eb4"]).wave("triangle").gain(0.5)',v:'"eb4"'},
+    {l:'ab4',c:'note(["ab4"]).wave("triangle").gain(0.5)',v:'"ab4"'},
+    {l:'bb4',c:'note(["bb4"]).wave("triangle").gain(0.5)',v:'"bb4"'},
+    {l:'c#4',c:'note(["c#4"]).wave("triangle").gain(0.5)',v:'"c#4"'},
+    {l:'f#4',c:'note(["f#4"]).wave("triangle").gain(0.5)',v:'"f#4"'},
   ]},
   {g:'Scale/Chord',chips:[
     {l:'scale()',c:'note([0,2,4,7,9].map(d=>scale("c","minor",d))).wave("sine").gain(0.4)'},
@@ -1590,13 +1590,34 @@ function buildChips(){
         histPush(ta.value);
         var before=ta.value.substring(0,pos);
         var after=ta.value.substring(pos);
-        // Only method chips (.xxx) insert inline at cursor
-        // Everything else goes on its own new line
         var isMethod=c.c.startsWith('.');
         var insert;
         if(isMethod){
+          // Methods insert inline at cursor
           insert=c.c;
+        } else if(c.v){
+          // Context-aware note chips: check if cursor is inside [ ]
+          var insideArray=false;
+          var depth=0;
+          for(var i=before.length-1;i>=0;i--){
+            if(before[i]===']')depth++;
+            else if(before[i]==='['){
+              if(depth===0){insideArray=true;break;}
+              depth--;
+            }
+          }
+          if(insideArray){
+            // Inside array - insert bare quoted value with comma if needed
+            var trimBefore=before.trimRight();
+            var needComma=trimBefore.length>0&&trimBefore[trimBefore.length-1]!=='[';
+            insert=(needComma?',':'')+c.v;
+          } else {
+            // Outside array - insert full pattern on new line
+            var needNL=before.length>0&&!before.endsWith('\n');
+            insert=(needNL?'\n':'')+c.c+'\n';
+          }
         } else {
+          // All other chips go on new line
           var needNL=before.length>0&&!before.endsWith('\n');
           insert=(needNL?'\n':'')+c.c+'\n';
         }
