@@ -189,6 +189,7 @@ header{background:var(--panel);border-bottom:1px solid var(--border);display:fle
 .mobile-toolbar::-webkit-scrollbar{height:0;}
 .snippet-chip{background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3);color:var(--accent);font-family:'JetBrains Mono',monospace;font-size:11px;padding:6px 12px;border-radius:14px;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all .1s;min-height:34px;}
 .snippet-chip:active{background:rgba(124,58,237,.35);}
+.chip-group-label{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;padding:0 4px;display:flex;align-items:center;flex-shrink:0;white-space:nowrap;border-left:2px solid var(--dim);margin-left:4px;padding-left:8px;}
 
 /* == Piano == */
 .piano-label{font-size:8px;color:var(--muted);padding:4px 10px 2px;letter-spacing:1px;text-transform:uppercase;flex-shrink:0;}
@@ -1484,19 +1485,122 @@ function updateLN(){
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 // == SNIPPET CHIPS ==
-const CHIPS=[
-  {l:'sound()',c:'sound(["bd","sd","hh","sd"]).steps(8).gain(0.8)'},
-  {l:'note()',c:'note(["c4","e4","g4"]).wave("sine").gain(0.5)'},
-  {l:'loop()',c:'sound(loop(["bd",null,"sd",null],4)).steps(16).gain(0.85)'},
-  {l:'every()',c:'sound(every(4,"kick2",16)).steps(16).gain(0.85)'},
-  {l:'rev()',c:'sound(loop(["bd",null,"sd",null],1).concat(rev(["bd",null,"sd",null]))).steps(8).gain(0.85)'},
-  {l:'choose',c:'note([choose("c4","eb4","g4")]).wave("triangle").gain(0.4)'},
-  {l:'scale',c:'note([0,2,4,7].map(d=>scale("c","minor",d))).wave("sine").gain(0.4)'},
-  {l:'chord',c:'note(chord("c","min7")).wave("triangle").adsr(0.05,0.2,0.5,0.5).gain(0.3)'},
-  {l:'adsr',c:'.adsr(0.01,0.1,0.5,0.2)'},{l:'lpf',c:'.lpf(600)'},{l:'hpf',c:'.hpf(200)'},
-  {l:'pan',c:'.pan(-0.5)'},{l:'fast',c:'.fast(2)'},{l:'slow',c:'.slow(2)'},{l:'distort',c:'.distort(0.3)'}
+// Chips organised into groups - each group has a label and chips
+const CHIP_GROUPS=[
+  {g:'Patterns',chips:[
+    {l:'sound()',c:'sound(["bd","sd","hh","sd"]).steps(8).gain(0.8)'},
+    {l:'note()',c:'note(["c4","e4","g4"]).wave("sine").gain(0.5)'},
+    {l:'freq()',c:'freq(440).gain(0.5).adsr(0.01,0.1,0.5,0.2)'},
+    {l:'null',c:'null'},
+  ]},
+  {g:'Notes',chips:[
+    {l:'c4',c:'"c4"'},{l:'d4',c:'"d4"'},{l:'e4',c:'"e4"'},{l:'f4',c:'"f4"'},
+    {l:'g4',c:'"g4"'},{l:'a4',c:'"a4"'},{l:'b4',c:'"b4"'},
+    {l:'c3',c:'"c3"'},{l:'g3',c:'"g3"'},{l:'c5',c:'"c5"'},
+    {l:'eb4',c:'"eb4"'},{l:'ab4',c:'"ab4"'},{l:'bb4',c:'"bb4"'},
+    {l:'c#4',c:'"c#4"'},{l:'f#4',c:'"f#4"'},
+  ]},
+  {g:'Scale/Chord',chips:[
+    {l:'scale()',c:'note([0,2,4,7,9].map(d=>scale("c","minor",d))).wave("sine").gain(0.4)'},
+    {l:'chord()',c:'note(chord("c","min7")).wave("triangle").adsr(0.05,0.2,0.5,0.5).gain(0.3)'},
+    {l:'choose',c:'note([choose("c4","eb4","g4","bb4")]).wave("sine").gain(0.4)'},
+    {l:'major',c:'.map(d=>scale("c","major",d))'},
+    {l:'minor',c:'.map(d=>scale("c","minor",d))'},
+    {l:'penta',c:'.map(d=>scale("c","pentatonic",d))'},
+    {l:'blues',c:'.map(d=>scale("c","blues",d))'},
+    {l:'dorian',c:'.map(d=>scale("c","dorian",d))'},
+    {l:'maj7',c:'chord("c","maj7")'},
+    {l:'min7',c:'chord("c","min7")'},
+    {l:'dom7',c:'chord("c","dom7")'},
+  ]},
+  {g:'Wave',chips:[
+    {l:'sine',c:'.wave("sine")'},
+    {l:'saw',c:'.wave("sawtooth")'},
+    {l:'square',c:'.wave("square")'},
+    {l:'triangle',c:'.wave("triangle")'},
+  ]},
+  {g:'Envelope',chips:[
+    {l:'adsr',c:'.adsr(0.01,0.1,0.5,0.2)'},
+    {l:'pluck',c:'.adsr(0.001,0.3,0.0,0.1)'},
+    {l:'pad',c:'.adsr(0.5,0.2,0.7,1.0)'},
+    {l:'gain',c:'.gain(0.6)'},
+    {l:'attack',c:'.attack(0.05)'},
+    {l:'release',c:'.release(0.5)'},
+  ]},
+  {g:'FX',chips:[
+    {l:'lpf',c:'.lpf(600)'},
+    {l:'hpf',c:'.hpf(200)'},
+    {l:'distort',c:'.distort(0.3)'},
+    {l:'pan',c:'.pan(-0.5)'},
+    {l:'reverb',c:'.reverb(0.4)'},
+    {l:'delay',c:'.delay(0.3,0.4)'},
+    {l:'detune',c:'.detune(12)'},
+    {l:'octave',c:'.octave(1)'},
+  ]},
+  {g:'Synth',chips:[
+    {l:'fm()',c:'.fm(30,2)'},
+    {l:'fm bell',c:'.fm(3,2)'},
+    {l:'fm bass',c:'.fm(80,0.5)'},
+    {l:'noise',c:'.noise(0.2)'},
+    {l:'glide',c:'.glide(0.05)'},
+    {l:'strum',c:'.strum(0.02)'},
+  ]},
+  {g:'Rhythm',chips:[
+    {l:'fast',c:'.fast(2)'},
+    {l:'slow',c:'.slow(2)'},
+    {l:'steps',c:'.steps(16)'},
+    {l:'mute',c:'.mute()'},
+  ]},
+  {g:'Loop/Pattern',chips:[
+    {l:'loop()',c:'sound(loop(["bd",null,"sd",null],4)).steps(16).gain(0.85)'},
+    {l:'every()',c:'sound(every(4,"kick2",16)).steps(16).gain(0.85)'},
+    {l:'rev()',c:'rev(["bd",null,"sd",null])'},
+    {l:'rep()',c:'rep("hh",8)'},
+    {l:'rand',c:'rand(200,800)'},
+    {l:'irand',c:'irand(8)'},
+  ]},
 ];
-function buildChips(){const bar=document.getElementById('mobileToolbar');CHIPS.forEach(c=>{const btn=document.createElement('button');btn.className='snippet-chip';btn.textContent=c.l;btn.onclick=()=>{const ta=document.getElementById('codeEditor'),pos=ta.selectionStart;histPush(ta.value);const before=ta.value.substring(0,pos),after=ta.value.substring(pos);const needNL=before.length>0&&!before.endsWith('\n');const insert=(needNL?'\n':'')+c.c+'\n';ta.value=before+insert+after;ta.selectionStart=ta.selectionEnd=pos+insert.length;ta.focus();updateLN();histPush(ta.value);updateHistBtns();};bar.appendChild(btn);});}
+
+function buildChips(){
+  const bar=document.getElementById('mobileToolbar');
+  CHIP_GROUPS.forEach(function(group){
+    // Group label
+    var lbl=document.createElement('div');
+    lbl.className='chip-group-label';
+    lbl.textContent=group.g;
+    bar.appendChild(lbl);
+    // Chips
+    group.chips.forEach(function(c){
+      var btn=document.createElement('button');
+      btn.className='snippet-chip';
+      btn.textContent=c.l;
+      btn.addEventListener('click',function(){
+        var ta=document.getElementById('codeEditor');
+        var pos=ta.selectionStart;
+        histPush(ta.value);
+        var before=ta.value.substring(0,pos);
+        var after=ta.value.substring(pos);
+        // Method chips (start with .) just insert inline, others on new line
+        var isMethod=c.c.startsWith('.');
+        var isValue=c.c.startsWith('"')||c.c==='null'||/^[a-z]/.test(c.c)&&!c.c.includes('(');
+        var insert;
+        if(isMethod||isValue){
+          insert=c.c;
+        } else {
+          var needNL=before.length>0&&!before.endsWith('\n');
+          insert=(needNL?'\n':'')+c.c+'\n';
+        }
+        ta.value=before+insert+after;
+        ta.selectionStart=ta.selectionEnd=pos+insert.length;
+        ta.focus();
+        updateLN();
+        histPush(ta.value);
+        updateHistBtns();
+      });
+      bar.appendChild(btn);
+    });
+  });
+}
 
 // == Instruments sidebar mobile toggle ==
 function toggleInstSidebar(){
